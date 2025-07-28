@@ -1,6 +1,3 @@
-local WeaponData = {}
-
-
 local lastShotTimes = {}
 
 
@@ -18,7 +15,7 @@ end
 
 ---@param weaponHash number
 ---@return boolean
-function WeaponData.canFire(weaponHash)
+local function canFire(weaponHash)
     local currentTime = GetGameTimer()
     local lastShotTime = lastShotTimes[weaponHash] or 0
     local weaponFireRate = GetWeaponTimeBetweenShots(weaponHash)
@@ -31,7 +28,7 @@ end
 
 
 ---@param weaponHash number
-function WeaponData.updateShotTime(weaponHash)
+local function updateShotTime(weaponHash)
     lastShotTimes[weaponHash] = GetGameTimer()
 
     if math.random(1, 10) == 1 then
@@ -42,7 +39,7 @@ end
 
 ---@param weaponHash number
 ---@return table
-function WeaponData.getWeaponConfig(weaponHash)
+local function getWeaponConfig(weaponHash)
     local config = Config.Weapons[weaponHash]
     if config then
         return config
@@ -54,7 +51,7 @@ end
 
 ---@param weaponHash number
 ---@return boolean
-function WeaponData.isValidWeapon(weaponHash)
+local function isValidWeapon(weaponHash)
 
     if Config.Weapons[weaponHash] then
         return true
@@ -65,13 +62,20 @@ end
 
 ---@param weaponHash number
 ---@return string
-function WeaponData.getWeaponName(weaponHash)
+local function getWeaponName(weaponHash)
     return Config.Weapons[weaponHash].name
 end
 
 
-function WeaponData.cleanup()
+local function cleanup()
     lastShotTimes = {}
 end
 
-return WeaponData
+return {
+    canFire = canFire,
+    updateShotTime = updateShotTime,
+    getWeaponConfig = getWeaponConfig,
+    isValidWeapon = isValidWeapon,
+    getWeaponName = getWeaponName,
+    cleanup = cleanup
+}

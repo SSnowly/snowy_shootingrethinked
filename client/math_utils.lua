@@ -1,17 +1,32 @@
-local MathUtils = {}
 local calculationCache = {}
 local cacheTimeout = 20000
 local lastCacheCleanup = 0
 local cacheCleanupInterval = 5000
 
-function MathUtils.degToRad(degrees)
+local function degToRad(degrees)
     return degrees * (math.pi / 180.0)
 end
 
 ---@param radians number
 ---@return number
-function MathUtils.radToDeg(radians)
+local function radToDeg(radians)
     return radians * (180.0 / math.pi)
+end
+
+local function RotationToDirection(rotation)
+    if not rotation or not rotation.x or not rotation.y or not rotation.z then
+        return {x = 0.0, y = 1.0, z = 0.0}
+    end
+
+    local z = math.rad(rotation.z)
+    local x = math.rad(rotation.x)
+    local num = math.abs(math.cos(x))
+
+    return {
+        x = -math.sin(z) * num,
+        y = math.cos(z) * num,
+        z = math.sin(x)
+    }
 end
 
 ---@param x1 number
@@ -21,7 +36,7 @@ end
 ---@param y2 number
 ---@param z2 number
 ---@return number
-function MathUtils.getDistance(x1, y1, z1, x2, y2, z2)
+local function getDistance(x1, y1, z1, x2, y2, z2)
     local dx = x2 - x1
     local dy = y2 - y1
     local dz = z2 - z1
@@ -32,7 +47,7 @@ end
 ---@param y number
 ---@param z number
 ---@return number, number, number
-function MathUtils.normalizeVector(x, y, z)
+local function normalizeVector(x, y, z)
     local length = math.sqrt(x * x + y * y + z * z)
     if length == 0 then
         return 0, 0, 0
@@ -48,7 +63,7 @@ end
 ---@param y2 number
 ---@param z2 number
 ---@return number
-function MathUtils.getAngleBetweenVectors(x1, y1, z1, x2, y2, z2)
+local function getAngleBetweenVectors(x1, y1, z1, x2, y2, z2)
     local dot = x1 * x2 + y1 * y2 + z1 * z2
     local mag1 = math.sqrt(x1 * x1 + y1 * y1 + z1 * z1)
     local mag2 = math.sqrt(x2 * x2 + y2 * y2 + z2 * z2)
@@ -63,12 +78,11 @@ function MathUtils.getAngleBetweenVectors(x1, y1, z1, x2, y2, z2)
 end
 
 
----@param playerPed number
 ---@return number, number, number, vector3, vector3
-function MathUtils.getWeaponMuzzlePosition(playerPed)
-    local playerCoords = GetEntityCoords(playerPed)
+local function getWeaponMuzzlePosition()
+    local playerCoords = GetEntityCoords(cache.ped)
     local cameraRotation = GetGameplayCamRot(2)
-    local weapon = GetCurrentPedWeaponEntityIndex(playerPed)
+    local weapon = GetCurrentPedWeaponEntityIndex(cache.ped)
     local weapCoord = GetEntityCoords(weapon)
     local cameraCoord = GetGameplayCamCoord()
     local direction = RotationToDirection(cameraRotation)
@@ -103,7 +117,7 @@ end
 ---@param targetZ number
 ---@param accuracy number
 ---@return number, number, number
-function MathUtils.calculateBulletTrajectory(startX, startY, startZ, targetX, targetY, targetZ, accuracy)
+local function calculateBulletTrajectory(startX, startY, startZ, targetX, targetY, targetZ, accuracy)
     local cacheKey = string.format("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f", startX, startY, startZ, targetX, targetY, targetZ, accuracy)
     local currentTime = GetGameTimer()
 
@@ -168,7 +182,7 @@ end
 ---@param worldY number
 ---@param worldZ number
 ---@return number, number
-function MathUtils.worldToScreen(worldX, worldY, worldZ)
+local function worldToScreen(worldX, worldY, worldZ)
     local onScreen, screenX, screenY = GetScreenCoordFromWorldCoord(worldX, worldY, worldZ)
     return screenX, screenY
 end
@@ -176,13 +190,13 @@ end
 ---@param screenX number
 ---@param screenY number
 ---@return boolean
-function MathUtils.isOnScreen(screenX, screenY)
+local function isOnScreen(screenX, screenY)
     return screenX >= 0.0 and screenX <= 1.0 and screenY >= 0.0 and screenY <= 1.0
 end
 
 
 ---@return number, number, number
-function MathUtils.getCrosshairPosition()
+local function getCrosshairPosition()
     local screenW, screenH = GetActiveScreenResolution()
     local crosshairX = screenW / 2
     local crosshairY = screenH / 2
@@ -194,11 +208,10 @@ end
 
 
 
----@param playerPed number
 ---@param destination vector3
 ---@return boolean, number, vector3, vector3
-function MathUtils.shapeTestFromWeapon(playerPed, destination)
-    local weapon = GetCurrentPedWeaponEntityIndex(playerPed)
+local function shapeTestFromWeapon(destination)
+    local weapon = GetCurrentPedWeaponEntityIndex(cache.ped)
     local weapCoord = GetEntityCoords(weapon)
     local cameraRotation = GetGameplayCamRot(2)
 
@@ -221,8 +234,22 @@ function MathUtils.shapeTestFromWeapon(playerPed, destination)
 end
 
 
-function MathUtils.cleanup()
+local function cleanup()
     calculationCache = {}
 end
 
-return MathUtils
+return {
+    rotationToDirection = RotationToDirection,
+    degToRad = degToRad,
+    radToDeg = radToDeg,
+    getDistance = getDistance,
+    normalizeVector = normalizeVector,
+    getAngleBetweenVectors = getAngleBetweenVectors,
+    getWeaponMuzzlePosition = getWeaponMuzzlePosition,
+    calculateBulletTrajectory = calculateBulletTrajectory,
+    worldToScreen = worldToScreen,
+    isOnScreen = isOnScreen,
+    getCrosshairPosition = getCrosshairPosition,
+    shapeTestFromWeapon = shapeTestFromWeapon,
+    cleanup = cleanup
+}
