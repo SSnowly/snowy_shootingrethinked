@@ -85,7 +85,7 @@ Citizen.CreateThread(function()
                 DisablePlayerFiring(PlayerId(), true)
 
                 local currentTime = GetGameTimer()
-                if (currentTime - lastShootingCheck) >= 8 and GetAmmoInClip(cache.ped, cache.weapon) > 0 then
+                if (currentTime - lastShootingCheck) >= 8 and cache.weapon and GetAmmoInClip(cache.ped, cache.weapon or 0) > 0 then
                     isCurrentlyShooting = HandleRealisticShooting()
                     lastShootingCheck = currentTime
                 end
