@@ -1,4 +1,5 @@
 local lastShotTimes = {}
+local minimumShotInterval = 50 -- Minimum 50ms between shots to prevent network spam
 
 
 local function cleanupOldShotTimes()
@@ -22,6 +23,9 @@ local function canFire(weaponHash)
     local weaponConfig = Config.Weapons[weaponHash] or Config.DefaultWeapon
     local configFireRate = weaponConfig.fireRate
     local fireRate = weaponFireRate > 0 and weaponFireRate or configFireRate
+    
+    -- Ensure minimum interval to prevent network spam
+    fireRate = math.max(fireRate, minimumShotInterval)
 
     return (currentTime - lastShotTime) >= fireRate
 end

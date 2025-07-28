@@ -3,11 +3,22 @@ local WeaponData = require('client.weapon_data')
 
 local isShootingEnabled = true
 local mainThreadActive = false
+local lastFireCheck = 0
+local fireCheckThrottle = 16
+local lastNetworkFire = 0
+local networkFireThrottle = 100
 
 local function FireWeaponWithSnapshot(weaponHash, muzzleX, muzzleY, muzzleZ, destination)
+    local currentTime = GetGameTimer()
+
+    if (currentTime - lastNetworkFire) < networkFireThrottle then
+        return
+    end
+    lastNetworkFire = currentTime
+
     local weaponConfig = WeaponData.getWeaponConfig(weaponHash)
     local currentAmmo = GetAmmoInPedWeapon(cache.ped, weaponHash)
-    
+
     if currentAmmo <= 0 then
         PlaySoundFrontend(-1, "WEAPON_EMPTY", "HUD_FRONTEND_DEFAULT_SOUNDSET", true)
         return
@@ -17,7 +28,7 @@ local function FireWeaponWithSnapshot(weaponHash, muzzleX, muzzleY, muzzleZ, des
         destination.x, destination.y, destination.z,
         weaponConfig.accuracy
     )
-    
+
     SetPedShootsAtCoord(cache.ped, endX, endY, endZ, true)
     SetPedCurrentWeaponVisible(cache.ped, true, true, true, true)
 
@@ -40,6 +51,13 @@ local function HandleRealisticShooting()
     if not IsPlayerFreeAiming(PlayerId()) or IsPedUsingAnyScenario(cache.ped) or IsEntityPlayingAnim(cache.ped, "move_dual", "roll_fwd", 3) or GetEntityAnimCurrentTime(cache.ped, 0, 0) > 0 or IsEntityPlayingAnim(cache.ped, "weapons@pistol@pistol_fp", "fire", 3) or IsPedReloading(cache.ped) or not WeaponData.canFire(cache.weapon) then
         return
     end
+
+    local currentTime = GetGameTimer()
+    if (currentTime - lastFireCheck) < fireCheckThrottle then
+        return
+    end
+    lastFireCheck = currentTime
+
     local isShootingPressed = IsDisabledControlJustPressed(0, 24)
     local isShootingHeld = IsDisabledControlPressed(0, 24)
 
