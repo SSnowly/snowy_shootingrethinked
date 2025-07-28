@@ -7,6 +7,8 @@ local lastFireCheck = 0
 local fireCheckThrottle = 16
 local lastNetworkFire = 0
 local networkFireThrottle = 100
+local isCurrentlyShooting = false
+local lastShootingCheck = 0
 
 local function FireWeaponWithSnapshot(weaponHash, muzzleX, muzzleY, muzzleZ, destination)
     local currentTime = GetGameTimer()
@@ -17,7 +19,7 @@ local function FireWeaponWithSnapshot(weaponHash, muzzleX, muzzleY, muzzleZ, des
     lastNetworkFire = currentTime
 
     local weaponConfig = WeaponData.getWeaponConfig(weaponHash)
-    local currentAmmo = GetAmmoInPedWeapon(cache.ped, weaponHash)
+    local currentAmmo = GetAmmoInClip(cache.ped, weaponHash)
 
     if currentAmmo <= 0 then
         PlaySoundFrontend(-1, "WEAPON_EMPTY", "HUD_FRONTEND_DEFAULT_SOUNDSET", true)
@@ -37,24 +39,24 @@ end
 
 local function HandleRealisticShooting()
     if IsPedDeadOrDying(cache.ped, false) then
-        return
+        return false
     end
 
     if cache.vehicle then
-        return
+        return false
     end
 
     if not cache.weapon then
-        return
+        return false
     end
 
     if not IsPlayerFreeAiming(PlayerId()) or IsPedUsingAnyScenario(cache.ped) or IsEntityPlayingAnim(cache.ped, "move_dual", "roll_fwd", 3) or GetEntityAnimCurrentTime(cache.ped, 0, 0) > 0 or IsEntityPlayingAnim(cache.ped, "weapons@pistol@pistol_fp", "fire", 3) or IsPedReloading(cache.ped) or not WeaponData.canFire(cache.weapon) then
-        return
+        return false
     end
 
     local currentTime = GetGameTimer()
     if (currentTime - lastFireCheck) < fireCheckThrottle then
-        return
+        return isCurrentlyShooting
     end
     lastFireCheck = currentTime
 
@@ -64,10 +66,11 @@ local function HandleRealisticShooting()
     if isShootingPressed or isShootingHeld then
         local muzzleX, muzzleY, muzzleZ, playerRotation, destination = MathUtils.getWeaponMuzzlePosition()
         FireWeaponWithSnapshot(cache.weapon, muzzleX, muzzleY, muzzleZ, destination)
+        return true
     end
+
+    return false
 end
-
-
 
 Citizen.CreateThread(function()
     print("^2[Snowy Shooting Rethinked] Realistic shooting system initialized^0")
@@ -80,14 +83,21 @@ Citizen.CreateThread(function()
             if isAiming then
                 Wait(0)
                 DisablePlayerFiring(PlayerId(), true)
-                HandleRealisticShooting()
+
+                local currentTime = GetGameTimer()
+                if (currentTime - lastShootingCheck) >= 8 and GetAmmoInClip(cache.ped, cache.weapon) > 0 then
+                    isCurrentlyShooting = HandleRealisticShooting()
+                    lastShootingCheck = currentTime
+                end
             else
                 Wait(100)
                 DisablePlayerFiring(PlayerId(), true)
+                isCurrentlyShooting = false
             end
         else
             Wait(100)
             DisablePlayerFiring(PlayerId(), false)
+            isCurrentlyShooting = false
         end
     end
 end)
