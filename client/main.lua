@@ -5,33 +5,21 @@ local isShootingEnabled = true
 local mainThreadActive = false
 
 local function FireWeaponWithSnapshot(weaponHash, muzzleX, muzzleY, muzzleZ, destination)
-
     local weaponConfig = WeaponData.getWeaponConfig(weaponHash)
-
-
     local currentAmmo = GetAmmoInPedWeapon(cache.ped, weaponHash)
+    
     if currentAmmo <= 0 then
         PlaySoundFrontend(-1, "WEAPON_EMPTY", "HUD_FRONTEND_DEFAULT_SOUNDSET", true)
         return
     end
-
-
     local endX, endY, endZ = MathUtils.calculateBulletTrajectory(
         muzzleX, muzzleY, muzzleZ,
         destination.x, destination.y, destination.z,
         weaponConfig.accuracy
     )
-
+    
     SetPedShootsAtCoord(cache.ped, endX, endY, endZ, true)
-
-
-
-
     SetPedCurrentWeaponVisible(cache.ped, true, true, true, true)
-
-
-
-
 
     WeaponData.updateShotTime(weaponHash)
 end
